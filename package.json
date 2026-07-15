@@ -45,7 +45,8 @@
     "publish": {
       "provider": "github",
       "owner": "alexdaltonmccoy",
-      "repo": "arena-armory-desktop"
+      "repo": "arena-armory-desktop",
+      "releaseType": "release"
     }
   },
   "dependencies": {
