@@ -2,7 +2,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as luaparse from 'luaparse'
-import type { SavedVariablesData, ArenaMatch } from '../shared/types'
+import type { SavedVariablesData, ArenaMatch, AddonDisabledCharacter } from '../shared/types'
 
 const DEFAULT_WOW_ROOTS = [
   'C:\\Program Files (x86)\\World of Warcraft',
@@ -27,6 +27,71 @@ export function discoverSavedVariablesFiles(extraRoots: string[] = []): string[]
     }
   }
   return found
+}
+
+/** Only warn about characters that logged in reasonably recently; ancient
+ * alts with the addon off are noise, not a problem worth a banner. */
+const ADDON_WARNING_WINDOW_MS = 30 * 24 * 60 * 60 * 1000
+
+/**
+ * WoW enables addons per character. A common trap: install the addon, play a
+ * different character where it was never enabled, and wonder why no games
+ * were recorded. WTF/Account/<acct>/<realm>/<char>/AddOns.txt lists each
+ * character's addon states, so scan those and report recently played
+ * characters where ArenaArmory isn't enabled.
+ */
+export function discoverAddonDisabledCharacters(
+  extraRoots: string[] = []
+): AddonDisabledCharacter[] {
+  const out: AddonDisabledCharacter[] = []
+  const cutoff = Date.now() - ADDON_WARNING_WINDOW_MS
+
+  for (const root of [...DEFAULT_WOW_ROOTS, ...extraRoots]) {
+    for (const flavor of FLAVOR_DIRS) {
+      const accountDir = path.join(root, flavor, 'WTF', 'Account')
+      if (!fs.existsSync(accountDir)) continue
+      for (const account of readDirsSafe(accountDir)) {
+        // Only accounts where the addon has actually run - otherwise a fresh
+        // install would warn about every character before their first login.
+        const sv = path.join(accountDir, account, 'SavedVariables', 'ArenaArmory.lua')
+        if (!fs.existsSync(sv)) continue
+
+        const accountPath = path.join(accountDir, account)
+        for (const realm of readDirsSafe(accountPath)) {
+          if (realm === 'SavedVariables') continue
+          const realmPath = path.join(accountPath, realm)
+          for (const character of readDirsSafe(realmPath)) {
+            const addonsTxt = path.join(realmPath, character, 'AddOns.txt')
+            let stat: fs.Stats
+            try {
+              stat = fs.statSync(addonsTxt)
+            } catch {
+              continue
+            }
+            if (stat.mtimeMs < cutoff) continue
+            const content = fs.readFileSync(addonsTxt, 'utf8')
+            const match = content.match(/^ArenaArmory:\s*(\w+)/m)
+            const enabled = match ? match[1].toLowerCase() === 'enabled' : false
+            if (!enabled) {
+              out.push({ realm, name: character, lastSeenAt: stat.mtimeMs })
+            }
+          }
+        }
+      }
+    }
+  }
+  return out.sort((a, b) => b.lastSeenAt - a.lastSeenAt)
+}
+
+function readDirsSafe(dir: string): string[] {
+  try {
+    return fs
+      .readdirSync(dir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name)
+  } catch {
+    return []
+  }
 }
 
 type LuaNode = any

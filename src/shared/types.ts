@@ -91,8 +91,25 @@ export interface MatchRecord extends ArenaMatch {
   uploadedAt?: number
 }
 
+export interface WatchedFile {
+  path: string
+  /** Last time WoW wrote the file (mtime) - i.e. the last logout//reload. */
+  modifiedAt?: number
+}
+
+/** A character whose WTF AddOns.txt shows ArenaArmory disabled (or never
+ * enabled) - games played on it won't be recorded. */
+export interface AddonDisabledCharacter {
+  realm: string
+  name: string
+  /** When the character last logged out (AddOns.txt mtime). */
+  lastSeenAt: number
+}
+
 export interface SyncStatus {
   watching: string[]
+  watchedFiles: WatchedFile[]
+  addonDisabled: AddonDisabledCharacter[]
   totalMatches: number
   pendingUpload: number
   lastScanAt?: number

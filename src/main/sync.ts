@@ -1,12 +1,17 @@
 // Watch SavedVariables files, import new matches, and upload them to the API.
 import * as fs from 'fs'
-import { discoverSavedVariablesFiles, parseSavedVariables } from './savedVariables'
+import {
+  discoverAddonDisabledCharacters,
+  discoverSavedVariablesFiles,
+  parseSavedVariables
+} from './savedVariables'
 import type { Store } from './store'
-import type { MatchRecord, SyncStatus } from '../shared/types'
+import type { AddonDisabledCharacter, MatchRecord, SyncStatus, WatchedFile } from '../shared/types'
 
 export class SyncService {
   private watchers: fs.StatWatcher[] = []
   private watching: string[] = []
+  private addonDisabled: AddonDisabledCharacter[] = []
   private lastScanAt?: number
   private lastUploadAt?: number
   private lastError?: string
@@ -31,11 +36,21 @@ export class SyncService {
       // SavedVariables only change on logout//reload; polling every 15s is plenty.
       const watcher = fs.watchFile(file, { interval: 15_000 }, () => {
         void this.scanFile(file)
+        this.refreshAddonDiagnostics()
       })
       this.watchers.push(watcher)
       void this.scanFile(file)
     }
+    this.refreshAddonDiagnostics()
     this.onChange()
+  }
+
+  private refreshAddonDiagnostics(): void {
+    try {
+      this.addonDisabled = discoverAddonDisabledCharacters()
+    } catch {
+      this.addonDisabled = []
+    }
   }
 
   stop(): void {
@@ -49,6 +64,7 @@ export class SyncService {
     for (const file of this.watching) {
       added += await this.scanFile(file)
     }
+    this.refreshAddonDiagnostics()
     return added
   }
 
@@ -128,8 +144,17 @@ export class SyncService {
   }
 
   status(): SyncStatus {
+    const watchedFiles: WatchedFile[] = this.watching.map((p) => {
+      try {
+        return { path: p, modifiedAt: fs.statSync(p).mtimeMs }
+      } catch {
+        return { path: p }
+      }
+    })
     return {
       watching: this.watching,
+      watchedFiles,
+      addonDisabled: this.addonDisabled,
       totalMatches: this.store.allMatches().length,
       pendingUpload: this.store.pendingUpload().length,
       lastScanAt: this.lastScanAt,

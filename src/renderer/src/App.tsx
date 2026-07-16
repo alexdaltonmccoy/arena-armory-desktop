@@ -34,6 +34,23 @@ function fmtDuration(s?: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
+function fmtAgo(ms?: number): string {
+  if (!ms) return 'never'
+  const mins = Math.round((Date.now() - ms) / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.round(mins / 60)
+  if (hours < 48) return `${hours}h ago`
+  return `${Math.round(hours / 24)}d ago`
+}
+
+/** Shorten C:\...\WTF\Account\NAME\SavedVariables\ArenaArmory.lua to the
+ * parts a player recognizes: flavor + account. */
+function fmtWatchedPath(p: string): string {
+  const m = p.match(/(_[a-z_]+_)[\\/]WTF[\\/]Account[\\/]([^\\/]+)/i)
+  return m ? `${m[1]} · ${m[2]}` : p
+}
+
 export default function App(): React.JSX.Element {
   const [matches, setMatches] = useState<MatchRecord[]>([])
   const [status, setStatus] = useState<SyncStatus | null>(null)
@@ -92,6 +109,44 @@ export default function App(): React.JSX.Element {
         </span>
         {status?.lastError && <span className="error">{status.lastError}</span>}
       </section>
+
+      {status && status.watchedFiles.length > 0 && (
+        <section className="watched-files">
+          {status.watchedFiles.map((f) => (
+            <span key={f.path} className="watched-file" title={f.path}>
+              {fmtWatchedPath(f.path)}
+              <span className="watched-file-time"> · last game data written {fmtAgo(f.modifiedAt)}</span>
+            </span>
+          ))}
+          <span className="watched-hint">
+            WoW saves match data only on logout or /reload - do one after your games.
+          </span>
+        </section>
+      )}
+
+      {status && status.watchedFiles.length === 0 && (
+        <section className="warning-banner">
+          No WoW installation found at the standard locations. Click &quot;Add
+          SavedVariables file...&quot; and pick{' '}
+          <code>World of Warcraft\_anniversary_\WTF\Account\&lt;ACCOUNT&gt;\SavedVariables\ArenaArmory.lua</code>{' '}
+          (the file appears after your first login with the addon installed).
+        </section>
+      )}
+
+      {status && status.addonDisabled.length > 0 && (
+        <section className="warning-banner">
+          The ArenaArmory addon is <strong>not enabled</strong> on{' '}
+          {status.addonDisabled
+            .slice(0, 4)
+            .map((c) => `${c.name} (${c.realm})`)
+            .join(', ')}
+          {status.addonDisabled.length > 4
+            ? ` and ${status.addonDisabled.length - 4} more`
+            : ''}
+          . Games on those characters are not recorded - enable it from the
+          AddOns button at character select.
+        </section>
+      )}
 
       <section className="settings">
         <span className={settings?.apiToken ? 'connected' : 'disconnected'}>
