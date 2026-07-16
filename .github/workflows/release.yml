@@ -39,6 +39,16 @@ jobs:
       - name: Build renderer/main bundles
         run: npm run build
 
+      # electron-builder uploads assets in parallel, and each upload
+      # creates the release if it doesn't exist yet - a race that has twice
+      # produced two releases for one tag with the assets split between them.
+      # Creating the release up front means every upload finds it already there.
+      - name: Create GitHub release
+        run: gh release create "${{ github.ref_name }}" --title "${{ github.ref_name }}" --notes "Arena Armory Desktop ${{ github.ref_name }}" || echo "release already exists"
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Package and publish installer
         run: npx electron-builder --win --publish always
         env:
