@@ -1,6 +1,6 @@
 {
   "name": "arena-armory-desktop",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Arena Armory desktop companion: imports arena matches recorded by the ArenaArmory WoW addon and uploads them to arenaarmory.com",
   "main": "./out/main/index.js",
   "author": "ArenaArmory",

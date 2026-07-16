@@ -14,6 +14,7 @@ declare global {
       addSavedVariablesFile(): Promise<AppSettings>
       listMatches(): Promise<MatchRecord[]>
       openWebMatches(): Promise<AppSettings>
+      openCharacterPage(name: string, realm: string): Promise<void>
       getSyncStatus(): Promise<SyncStatus>
       scanNow(): Promise<{ added: number; status: SyncStatus }>
       uploadNow(): Promise<{ uploaded: number; error?: string; status: SyncStatus }>
@@ -51,6 +52,27 @@ function fmtWatchedPath(p: string): string {
   return m ? `${m[1]} · ${m[2]}` : p
 }
 
+/** Characters that have recorded matches, most recently played first. */
+function charactersFromMatches(
+  matches: MatchRecord[]
+): { name: string; realm: string; count: number; lastPlayedAt: number }[] {
+  const byKey = new Map<string, { name: string; realm: string; count: number; lastPlayedAt: number }>()
+  for (const m of matches) {
+    const name = m.player?.name?.split('-')[0]
+    const realm = m.player?.realm
+    if (!name || !realm) continue
+    const key = `${name}-${realm}`.toLowerCase()
+    const entry = byKey.get(key)
+    if (entry) {
+      entry.count++
+      entry.lastPlayedAt = Math.max(entry.lastPlayedAt, m.startedAt)
+    } else {
+      byKey.set(key, { name, realm, count: 1, lastPlayedAt: m.startedAt })
+    }
+  }
+  return [...byKey.values()].sort((a, b) => b.lastPlayedAt - a.lastPlayedAt)
+}
+
 export default function App(): React.JSX.Element {
   const [matches, setMatches] = useState<MatchRecord[]>([])
   const [status, setStatus] = useState<SyncStatus | null>(null)
@@ -84,6 +106,7 @@ export default function App(): React.JSX.Element {
 
   const wins = matches.filter((m) => m.result === 'win').length
   const losses = matches.filter((m) => m.result === 'loss').length
+  const characters = charactersFromMatches(matches)
 
   return (
     <div className="app">
@@ -148,6 +171,22 @@ export default function App(): React.JSX.Element {
         </section>
       )}
 
+      {characters.length > 0 && (
+        <section className="characters">
+          <span className="characters-label">Your characters:</span>
+          {characters.map((c) => (
+            <button
+              key={`${c.name}-${c.realm}`}
+              className="character-chip"
+              title={`Open ${c.name} (${c.realm}) on arenaarmory.com`}
+              onClick={() => void window.arenaArmory.openCharacterPage(c.name, c.realm)}
+            >
+              {c.name} <span className="character-chip-meta">{c.realm} · {c.count}</span>
+            </button>
+          ))}
+        </section>
+      )}
+
       <section className="settings">
         <span className={settings?.apiToken ? 'connected' : 'disconnected'}>
           {settings?.apiToken
@@ -165,6 +204,30 @@ export default function App(): React.JSX.Element {
             }}
           />
           Auto-upload new matches
+        </label>
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={settings?.launchAtStartup ?? true}
+            onChange={(e) => {
+              void window.arenaArmory
+                .setSettings({ launchAtStartup: e.target.checked })
+                .then(setSettingsState)
+            }}
+          />
+          Launch when Windows starts
+        </label>
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={settings?.closeToTray ?? true}
+            onChange={(e) => {
+              void window.arenaArmory
+                .setSettings({ closeToTray: e.target.checked })
+                .then(setSettingsState)
+            }}
+          />
+          Keep syncing in tray when closed
         </label>
         <button
           onClick={() => void window.arenaArmory.openWebMatches().then(setSettingsState)}

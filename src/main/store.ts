@@ -8,7 +8,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   savedVariablesPaths: [],
   apiBaseUrl: 'https://arenaarmory.com',
   apiToken: '',
-  autoUpload: true
+  autoUpload: true,
+  launchAtStartup: true,
+  closeToTray: true
 }
 
 function dataDir(): string {

@@ -135,6 +135,41 @@ button:disabled {
   font-size: 12px;
 }
 
+.characters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0 2px;
+  font-size: 13px;
+}
+
+.characters-label {
+  color: var(--text-muted);
+}
+
+button.character-chip {
+  background: var(--panel);
+  border: 1px solid var(--hairline);
+  color: var(--gold-bright);
+  padding: 5px 12px;
+  border-radius: 999px;
+  margin-left: 0;
+  font-weight: 600;
+}
+
+button.character-chip:hover {
+  background: rgba(230, 200, 125, 0.12);
+  border-color: var(--gold);
+  color: var(--gold-bright);
+}
+
+.character-chip-meta {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+
 .settings {
   display: flex;
   gap: 16px;

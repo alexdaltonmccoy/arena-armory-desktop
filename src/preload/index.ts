@@ -9,6 +9,8 @@ const api = {
     ipcRenderer.invoke('settings:addSavedVariablesFile'),
   listMatches: (): Promise<MatchRecord[]> => ipcRenderer.invoke('matches:list'),
   openWebMatches: (): Promise<AppSettings> => ipcRenderer.invoke('matches:openWeb'),
+  openCharacterPage: (name: string, realm: string): Promise<void> =>
+    ipcRenderer.invoke('matches:openCharacter', name, realm),
   getSyncStatus: (): Promise<SyncStatus> => ipcRenderer.invoke('sync:status'),
   scanNow: (): Promise<{ added: number; status: SyncStatus }> => ipcRenderer.invoke('sync:scan'),
   uploadNow: (): Promise<{ uploaded: number; error?: string; status: SyncStatus }> =>

@@ -83,6 +83,10 @@ export interface AppSettings {
   apiBaseUrl: string
   apiToken: string
   autoUpload: boolean
+  /** Start with Windows/macOS login (hidden in the tray). */
+  launchAtStartup: boolean
+  /** Closing the window keeps the app syncing in the system tray. */
+  closeToTray: boolean
 }
 
 export interface MatchRecord extends ArenaMatch {
