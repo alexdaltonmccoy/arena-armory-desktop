@@ -22,6 +22,12 @@ export interface ScoreboardRow {
   deaths?: number
   damage?: number
   healing?: number
+  /** Schema v3+: personal arena rating (TBC Anniversary has no arena teams).
+   * `rating` is prematch; ratingChange applies after. */
+  rating?: number
+  ratingChange?: number
+  prematchMMR?: number
+  postmatchMMR?: number
 }
 
 /** Schema v2 timeline entry: cd = tracked cooldown, trinket = PvP trinket /
