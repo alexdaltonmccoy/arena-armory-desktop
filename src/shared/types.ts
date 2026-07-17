@@ -45,6 +45,15 @@ export interface MatchEvent {
   lvl?: number
 }
 
+/** Schema v4: bucketed damage/healing per side + enemy focus target strip. */
+export interface MatchTimeline {
+  step: number
+  dmg?: { f?: number[]; e?: number[] }
+  heal?: { f?: number[]; e?: number[] }
+  focus?: string[]
+  swaps?: number
+}
+
 export interface TeamRating {
   name?: string
   oldRating?: number
@@ -68,6 +77,7 @@ export interface ArenaMatch {
   enemyTeam: MatchPlayer[]
   deaths: MatchDeath[]
   events?: MatchEvent[]
+  timeline?: MatchTimeline
   scoreboard?: ScoreboardRow[]
   ratings?: Record<string, TeamRating>
 }
